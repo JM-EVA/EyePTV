@@ -15,6 +15,9 @@
     <Nullable>enable</Nullable>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 
+    <!-- De workload levert MAUI 8.0.3 (bouwgereedschap); de eigenlijke bibliotheken komen uit NuGet in deze nieuwere 8.0-versie (LibVLCSharp.MAUI vraagt >= 8.0.70). -->
+    <MauiVersion>8.0.100</MauiVersion>
+
     <ApplicationTitle>EyePTV</ApplicationTitle>
     <ApplicationId>com.eyeptv.mobile</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -36,6 +39,7 @@
 
   <ItemGroup>
     <!-- Vaste versies. LibVLCSharp.MAUI 3.9.4 is de laatste met net8.0-ios; nieuwere vragen .NET 9/10. -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
     <PackageReference Include="LibVLCSharp.MAUI" Version="3.9.4" />
     <PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
   </ItemGroup>
