@@ -48,6 +48,9 @@ jobs:
         run: |
           sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
           xcodebuild -version
+          sudo xcodebuild -runFirstLaunch || true
+          ls -la "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" || true
+          xcodebuild -showsdks || true
 
       - name: MAUI-workload voor iOS installeren
         run: |
