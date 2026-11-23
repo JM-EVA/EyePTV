@@ -8,9 +8,12 @@ namespace IptvPlayer.Engine;
 public static class HttpFactory
 {
     /// <summary>HttpClient met een VLC-achtige User-Agent (sommige providers blokkeren onbekende agents).</summary>
+    /// <summary>Een platform (iPhone) kan hier een eigen netwerkhandler opgeven; zonder is het SocketsHttpHandler.</summary>
+    public static Func<HttpMessageHandler>? HandlerFactory { get; set; }
+
     public static HttpClient Create()
     {
-        var handler = new SocketsHttpHandler
+        HttpMessageHandler handler = HandlerFactory?.Invoke() ?? new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),

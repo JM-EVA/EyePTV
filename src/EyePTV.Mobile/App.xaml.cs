@@ -13,6 +13,8 @@ public partial class App : Application
 
         try
         {
+            // De ingebouwde iOS-netwerklaag: werkt met de iOS-instellingen (http toegestaan) en met mobiel internet/VPN.
+            HttpFactory.HandlerFactory = () => new System.Net.Http.NSUrlSessionHandler { AutomaticDecompression = System.Net.DecompressionMethods.All };
             var http = HttpFactory.Create();
             // Wachtwoorden en inlog-links staan versleuteld; de sleutel zit in de iOS-keychain (SecureStorage).
             var root = FileSystem.AppDataDirectory;
