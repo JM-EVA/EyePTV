@@ -51,6 +51,13 @@ jobs:
           sudo xcodebuild -runFirstLaunch || true
           ls -la "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" || true
           xcodebuild -showsdks || true
+          echo "--- diagnose actool"
+          xcode-select -p
+          xcrun --find actool || true
+          xcrun --sdk macosx --find actool || true
+          xcodebuild -sdk "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" -find actool || true
+          xcodebuild -sdk macosx15.0 -find actool || true
+          ls "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/usr/bin" | head -40 || true
 
       - name: MAUI-workload voor iOS installeren
         run: |
