@@ -3,7 +3,7 @@ using IptvPlayer.Engine.ViewModels;
 using LibVLCSharp.Shared;
 using LibVLCSharp.Shared.Structures;
 // Op iOS bestaat ook een naamruimte MediaPlayer (Apple); deze alias maakt duidelijk dat we de LibVLC-speler bedoelen.
-using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
+using VlcPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace EyePTV.Mobile.Services;
 
@@ -18,7 +18,7 @@ public sealed class LibVlcPlayerService : IPlayerService, IDisposable
     {
         LibVLCSharp.Shared.Core.Initialize();
         _libVlc = new LibVLC("--network-caching=3000", "--http-reconnect", "--no-lua");
-        MediaPlayer = new MediaPlayer(_libVlc);
+        MediaPlayer = new VlcPlayer(_libVlc);
 
         MediaPlayer.EncounteredError += (_, _) =>
             MainThread.BeginInvokeOnMainThread(() => PlaybackError?.Invoke("Afspelen mislukt. De zender is mogelijk offline of de verbinding is verbroken."));
@@ -39,7 +39,7 @@ public sealed class LibVlcPlayerService : IPlayerService, IDisposable
     private void RaiseTracks() => MainThread.BeginInvokeOnMainThread(() => TracksChanged?.Invoke());
 
     /// <summary>Wordt aan de VideoView in het scherm gekoppeld.</summary>
-    public MediaPlayer MediaPlayer { get; }
+    public VlcPlayer MediaPlayer { get; }
 
     public event Action<string>? PlaybackError;
     public event Action? PositionChanged;
