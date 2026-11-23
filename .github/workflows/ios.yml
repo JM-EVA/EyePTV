@@ -1,7 +1,7 @@
 name: iOS
 
 # Bouwt EyePTV.Mobile (iPhone) in de cloud en levert een IPA op die je zelf opnieuw ondertekent met AltStore of Sideloadly.
-# Versies (samen uitgezocht, zie CLAUDE.md): .NET 8 SDK (band 8.0.1xx), iOS-workload 18.0.x = Xcode 16.0 (iOS 18.0 SDK),
+# Versies (samen uitgezocht, zie CLAUDE.md): .NET 8.0.134 SDK (band 8.0.1xx, vast gezet: een nieuwere SDK weigert net8.0-ios), iOS-workload 18.0.x = Xcode 16.0 (iOS 18.0 SDK),
 # LibVLCSharp(.MAUI) 3.9.4 (laatste met net8.0-ios), macOS 15 runner.
 on:
   workflow_dispatch:
@@ -33,10 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: ".NET 8 installeren (band 8.0.1xx, daar hoort iOS-workload 18.0 bij)"
+      - name: ".NET 8.0.134 installeren (band 8.0.1xx, daar hoort iOS-workload 18.0 bij)"
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.1xx"
+          dotnet-version: "8.0.134"
 
       - name: Xcode ${{ env.XCODE_VERSION }} kiezen
         run: |
@@ -51,6 +51,7 @@ jobs:
 
       - name: "IPA bouwen (niet ondertekend, AltStore/Sideloadly doen dat zelf)"
         run: |
+          set -o pipefail
           mkdir -p artifacts
           dotnet build src/EyePTV.Mobile/EyePTV.Mobile.csproj \
             -f net8.0-ios -c Release \
