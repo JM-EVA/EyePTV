@@ -1,6 +1,9 @@
 using IptvPlayer.Engine;
 using IptvPlayer.Engine.ViewModels;
 using LibVLCSharp.Shared;
+using LibVLCSharp.Shared.Structures;
+// Op iOS bestaat ook een naamruimte MediaPlayer (Apple); deze alias maakt duidelijk dat we de LibVLC-speler bedoelen.
+using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace EyePTV.Mobile.Services;
 
