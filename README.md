@@ -90,3 +90,24 @@ Het afspelen gebeurt met LibVLC (de motor van VLC); die komt mee via het NuGet-p
 - Terugkijken is "best effort": het hangt af van wat de provider ondersteunt.
 - Geen opnemen.
 
+
+## EyePTV voor iPhone (EyePTV.Mobile)
+Een aparte iPhone-app (.NET MAUI) die zelfstandig werkt, zonder pc. Ze gebruikt dezelfde Engine en viewmodels als de Windows-app.
+Eerste versie: bronnen (M3U of Xtream) toevoegen, bijwerken en verwijderen; kiezen wat in je lijst komt; Zenders / Films / Series met zoeken, groepen en favorieten; een speler met pauze, 10 s terug, 30 s vooruit, een spoelbalk en verder kijken. Er is nog **geen** gids, terugkijken, herinneringen, ondertitelkeuze, reservezenders of casten.
+
+### De IPA ophalen
+Je hebt geen Mac nodig: GitHub bouwt de app in de cloud.
+1. Open de repository op GitHub, tabblad **Actions**, werkstroom **iOS**.
+2. Klik op de laatste groene run (of start er een met **Run workflow**) en download onderaan het artifact **EyePTV-ios-ipa**. Je krijgt een zip met `EyePTV.ipa`.
+3. Een bouw duurt ongeveer 15 tot 30 minuten.
+
+### Installeren met AltStore of Sideloadly (gratis Apple-ID)
+De IPA is bewust **niet ondertekend**; AltStore en Sideloadly tekenen hem opnieuw met jouw Apple-ID.
+- **Sideloadly** (Windows): iPhone via usb aansluiten, `EyePTV.ipa` in het venster slepen, je Apple-ID invullen en op *Start* drukken. Daarna op de iPhone: *Instellingen → Algemeen → VPN en apparaatbeheer* → je Apple-ID → *Vertrouw*. Zet ook *Ontwikkelaarsmodus* aan (*Instellingen → Privacy en beveiliging*).
+- **AltStore**: installeer AltServer op de pc en AltStore op de iPhone (zie altstore.io), open dan in AltStore het tabblad *My Apps* en kies *+* om de IPA te kiezen.
+
+### Beperkingen van een gratis Apple-ID
+- Een zo geïnstalleerde app is **7 dagen geldig**; daarna start hij niet meer.
+- Je mag maximaal **3 apps** tegelijk op deze manier hebben staan (en een beperkt aantal nieuwe app-id's per week).
+- **Verlopen?** Installeer dezelfde (of een nieuwe) IPA gewoon opnieuw met Sideloadly of AltStore; je bronnen en lijst blijven behouden. AltStore kan dat automatisch verversen zolang AltServer op de pc draait en jullie op hetzelfde wifi-netwerk zitten.
+- Wil je later 1 jaar geldigheid zonder pc? Dan is een betaald Apple Developer-account nodig; de bouw is daarop voorbereid (zie `CLAUDE.md`).
