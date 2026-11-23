@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#E5132D" />
-    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0E0E10" BaseSize="128,128" />
+    <!-- Geen MauiSplashScreen: dat maakt een storyboard en ibtool vraagt dan het iOS-platform van Xcode 16 ("iOS 18.0 Platform Not Installed"), dat niet op de runner staat. -->
   </ItemGroup>
 
   <ItemGroup>
