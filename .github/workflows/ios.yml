@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: .NET 8 installeren (band 8.0.1xx: daar hoort iOS-workload 18.0 bij)
+      - name: ".NET 8 installeren (band 8.0.1xx, daar hoort iOS-workload 18.0 bij)"
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.1xx"
@@ -49,7 +49,7 @@ jobs:
           dotnet workload install maui-ios
           dotnet workload list
 
-      - name: IPA bouwen (niet ondertekend: AltStore/Sideloadly doen dat zelf)
+      - name: "IPA bouwen (niet ondertekend, AltStore/Sideloadly doen dat zelf)"
         run: |
           mkdir -p artifacts
           dotnet build src/EyePTV.Mobile/EyePTV.Mobile.csproj \
