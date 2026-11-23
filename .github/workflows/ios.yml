@@ -38,6 +38,12 @@ jobs:
         with:
           dotnet-version: "8.0.134"
 
+      - name: "SDK 8.0.1xx afdwingen (op de runner staan ook nieuwere SDK's, die net8.0-ios weigeren)"
+        run: |
+          echo '{ "sdk": { "version": "8.0.134", "rollForward": "latestPatch" } }' > global.json
+          dotnet --list-sdks
+          dotnet --version
+
       - name: Xcode ${{ env.XCODE_VERSION }} kiezen
         run: |
           sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
