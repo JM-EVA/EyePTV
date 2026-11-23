@@ -1,0 +1,142 @@
+<UserControl x:Class="IptvPlayer.Desktop.Views.SelectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="24,20,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Kop -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Text="{Binding Title}" FontSize="24" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource DimText}" TextWrapping="Wrap"
+                       TextTrimming="None" Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <!-- Gereedschap -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="True">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <CheckBox Content="Alleen met terugkijken ↺" IsChecked="{Binding OnlyCatchup}" Margin="12,0,0,0"
+                          ToolTip="Toon alleen zenders waarvan de provider een archief bewaart, zodat je programma's kunt terugkijken"
+                          Visibility="{Binding HasCatchupChannels, Converter={StaticResource BoolToVis}}"/>
+                <CheckBox Content="Alleen geselecteerde" IsChecked="{Binding ShowOnlySelected}" Margin="12,0,0,0"/>
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0">
+                <Button Content="Alles selecteren" Command="{Binding SelectVisibleCommand}" Margin="0,0,8,0"
+                        ToolTip="Selecteert alles wat nu in beeld is (volgens soort, groep en zoekterm)"/>
+                <Button Content="Niets selecteren" Command="{Binding DeselectVisibleCommand}"
+                        ToolTip="Haalt het vinkje weg bij alles wat nu in beeld is"/>
+            </StackPanel>
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Zoek op naam of groep"/>
+        </DockPanel>
+
+        <!-- Groepen en zenders -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource PanelBrush}" CornerRadius="8" Margin="0,0,12,0" Padding="4">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Zenders / Films / Series: alleen als er meer dan één soort te kiezen valt -->
+                    <StackPanel Grid.Row="0" Visibility="{Binding HasKindTabs, Converter={StaticResource BoolToVis}}">
+                        <ListBox ItemsSource="{Binding KindTabs}" SelectedItem="{Binding SelectedKindTab, Mode=TwoWay}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="4,6"/>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup, Mode=TwoWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="4">
+                    <ListBox ItemsSource="{Binding VisibleChannels}"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.CanContentScroll="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" HorizontalAlignment="Stretch">
+                                    <DockPanel Margin="6,0,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Group}" Style="{StaticResource DimText}"
+                                                   Margin="12,0,0,0" MaxWidth="220"/>
+                                        <Border DockPanel.Dock="Right" CornerRadius="10" Padding="8,1" Margin="12,0,0,0"
+                                                Background="{StaticResource SelectedBrush}" VerticalAlignment="Center"
+                                                ToolTip="Terugkijken mogelijk: de provider bewaart een archief van deze zender"
+                                                Visibility="{Binding HasCatchup, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding CatchupText}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentBrush}"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}"/>
+                                    </DockPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <!-- Zenders die de provider niet meer heeft (alleen bij een update) -->
+                <Border Grid.Row="1" Margin="0,12,0,0" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="12,10"
+                        MaxHeight="220"
+                        Visibility="{Binding HasRemoved, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Margin="0,0,0,6">
+                            <TextBlock Text="Niet meer bij je provider" FontWeight="SemiBold" Foreground="#E5A04B"/>
+                            <TextBlock Style="{StaticResource DimText}" TextTrimming="None" TextWrapping="Wrap"
+                                       Text="Deze items uit je lijst worden niet meer aangeboden. Vink aan om ze uit je lijst te halen."/>
+                        </StackPanel>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding RemovedAtSource}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding Remove}" Content="{Binding Name}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Onderbalk -->
+        <DockPanel Grid.Row="3" Margin="0,14,0,0" LastChildFill="False">
+            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                <TextBlock Text="{Binding SummaryText}" FontSize="14"/>
+                <TextBlock Text="{Binding CatchupSummary}" Style="{StaticResource DimText}" FontSize="12" Margin="0,2,0,0"/>
+            </StackPanel>
+            <Button DockPanel.Dock="Right" Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}"
+                    Style="{StaticResource AccentButton}" Padding="22,9"/>
+            <Button DockPanel.Dock="Right" Content="Annuleren" Command="{Binding CancelCommand}" Margin="0,0,10,0"/>
+        </DockPanel>
+    </Grid>
+</UserControl>

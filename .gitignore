@@ -1,0 +1,12 @@
+bin/
+obj/
+publish/
+*.user
+.vs/
+jm-*/
+node_modules/
+
+# Lokale hulpmappen van de ontwikkeltools: nooit publiceren
+.omc/
+graphify-out/
+.claude/

@@ -1,0 +1,301 @@
+<UserControl x:Class="IptvPlayer.Desktop.Views.GuideView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:svc="clr-namespace:IptvPlayer.Desktop.Services">
+
+    <UserControl.Resources>
+        <svc:UrlToImageConverter x:Key="UrlToImage"/>
+
+        <!-- Eén verschuiving voor kop, rijen en "nu"-lijn: zo schuiven ze samen over het rooster. -->
+        <TranslateTransform x:Key="GridShift"/>
+
+        <!-- Rijen van het rooster zonder selectiekleur: de blokken zijn zelf de knoppen. -->
+        <Style x:Key="PlainRow" TargetType="ListBoxItem">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BlockButton" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Box" Background="{StaticResource Panel2Brush}" BorderBrush="Transparent" BorderThickness="1"
+                                CornerRadius="5" Padding="8,6,8,6" ClipToBounds="True" Cursor="Hand">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsPast}" Value="True">
+                                <Setter TargetName="Box" Property="Opacity" Value="0.6"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="{StaticResource SelectedBrush}"/>
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="{StaticResource SelectedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Kijk nu / terugkijken / herinner mij / opnemen, voor een gekozen programma en voor zoekresultaten -->
+        <DataTemplate x:Key="ProgrammeActions">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                <Button Content="Kijk nu" Style="{StaticResource AccentButton}" Padding="12,4" FontSize="12" Margin="0,0,6,0" Command="{Binding WatchCommand}"
+                        Visibility="{Binding IsNow, Converter={StaticResource BoolToVis}}"/>
+                <Button Content="↺ Terugkijken" Padding="10,4" FontSize="12" Margin="0,0,6,0" Command="{Binding ReplayCommand}"
+                        Visibility="{Binding CanReplay, Converter={StaticResource BoolToVis}}"
+                        ToolTip="Dit programma vanaf het begin terugkijken"/>
+                <Button Content="{Binding RemindText}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Command="{Binding RemindCommand}"
+                        Visibility="{Binding CanRemind, Converter={StaticResource BoolToVis}}"
+                        ToolTip="Een melding krijgen vlak voor het begin"/>
+                <Button Command="{Binding RecordCommand}" Visibility="{Binding CanRecord, Converter={StaticResource BoolToVis}}"
+                        ToolTip="Opnemen: begint iets eerder en loopt iets langer door (in te stellen bij Voorkeuren)">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource RecordButton}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsRecorded}" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="Background" Value="#C0392B"/>
+                                    <Setter Property="BorderBrush" Value="#C0392B"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock>
+                        <Run Text="● "/><Run Text="{Binding RecordText, Mode=OneWay}"/>
+                    </TextBlock>
+                </Button>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="22,20,22,14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Kop: titel, zoeken, filters -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock DockPanel.Dock="Left" Text="TV Gids" FontFamily="Bahnschrift SemiCondensed, Segoe UI" FontSize="28" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,24,0"/>
+            <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding ShowReminders}" Content="Mijn herinneringen" Padding="12,6" Margin="10,0,0,0"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0">
+                <ToggleButton Style="{StaticResource StarToggle}" IsChecked="{Binding FavoritesOnly}" ToolTip="Alleen favorieten tonen"/>
+                <ComboBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup, Mode=TwoWay}" MinWidth="170" Margin="6,0,0,0"
+                          AutomationProperties.Name="Groep"/>
+            </StackPanel>
+            <TextBox Text="{Binding ProgrammeQuery, UpdateSourceTrigger=PropertyChanged}" MinWidth="200"
+                     ToolTip="Zoek in titel en omschrijving van alle programma's (minstens 2 tekens)" AutomationProperties.Name="Zoeken in de gids"/>
+        </DockPanel>
+
+        <TextBlock Grid.Row="1" Text="{Binding Message}" Style="{StaticResource DimText}" TextWrapping="Wrap" TextTrimming="None"
+                   Margin="0,0,0,8" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
+
+        <!-- Rooster -->
+        <Grid Grid.Row="3" Visibility="{Binding ShowGrid, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Snel naar een moment van de dag -->
+            <DockPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource PillButton}" Content="Nu op TV" FontWeight="SemiBold" Click="Now_Click" Margin="0,0,8,0"
+                            ToolTip="Terug naar het programma van nu"/>
+                    <Button Style="{StaticResource PillButton}" Content="‹" Padding="14,7" Click="Back_Click" Margin="0,0,6,0" AutomationProperties.Name="Eerder"/>
+                    <Button Style="{StaticResource PillButton}" Content="›" Padding="14,7" Click="Forward_Click" AutomationProperties.Name="Later"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource PillButton}" Content="Ochtend" Tag="6" Click="Part_Click" Background="Transparent" Foreground="{StaticResource DimBrush}"/>
+                    <Button Style="{StaticResource PillButton}" Content="Middag" Tag="12" Click="Part_Click" Background="Transparent" Foreground="{StaticResource DimBrush}"/>
+                    <Button Style="{StaticResource PillButton}" Content="Avond" Tag="18" Click="Part_Click" Background="Transparent" Foreground="{StaticResource DimBrush}"/>
+                    <Button Style="{StaticResource PillButton}" Content="Nacht" Tag="23" Click="Part_Click" Background="Transparent" Foreground="{StaticResource DimBrush}"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Tijdkop -->
+            <Border x:Name="TimeArea" Grid.Row="1" Grid.Column="1" Height="30" ClipToBounds="True" SizeChanged="TimeArea_SizeChanged">
+                <ItemsControl ItemsSource="{Binding HourMarks}" RenderTransform="{StaticResource GridShift}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Rectangle Width="1" Height="18" Fill="{StaticResource DimBrush}"/>
+                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextBrush}" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <!-- Zenders met hun programma's; alleen de rijen in beeld worden opgebouwd -->
+            <ListBox x:Name="GridList" Grid.Row="2" Grid.ColumnSpan="2" ItemsSource="{Binding GridRows}" ItemContainerStyle="{StaticResource PlainRow}"
+                     Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True"
+                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                     PreviewMouseWheel="GridList_PreviewMouseWheel">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="66" Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="210"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DockPanel Grid.Column="0" Margin="0,0,8,0">
+                                <Border DockPanel.Dock="Left" Width="60" Height="60" Margin="0,0,10,0" CornerRadius="8" Background="White" Padding="7">
+                                    <Image Stretch="Uniform" Source="{Binding Channel.LogoUrl, Converter={StaticResource UrlToImage}, IsAsync=True}"/>
+                                </Border>
+                                <TextBlock Text="{Binding Channel.Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Channel.Name}"/>
+                            </DockPanel>
+
+                            <Border Grid.Column="1" ClipToBounds="True">
+                                <ItemsControl ItemsSource="{Binding Blocks}" RenderTransform="{StaticResource GridShift}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource BlockButton}" Command="{Binding SelectCommand}" Width="{Binding Width}" Height="64" ToolTip="Dubbelklik om naar de zender te gaan">
+                                                <Button.InputBindings>
+                                                    <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding WatchCommand}"/>
+                                                </Button.InputBindings>
+                                                <Grid>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding TimeText}" Style="{StaticResource DimText}" FontSize="11"/>
+                                                        <DockPanel>
+                                                            <Path DockPanel.Dock="Left" Style="{StaticResource GlyphPath}" Width="12" Height="12" Margin="0,0,5,0" Stroke="{StaticResource AccentBrush}"
+                                                                  Data="{StaticResource IconBell}"
+                                                                  Visibility="{Binding IsReminded, Converter={StaticResource BoolToVis}}"/>
+                                                            <TextBlock Text="{Binding Title}" FontFamily="Bahnschrift SemiCondensed, Segoe UI" FontWeight="Bold" FontSize="13"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                        </DockPanel>
+                                                        <TextBlock Text="{Binding Description}" Style="{StaticResource DimText}" FontSize="11"/>
+                                                    </StackPanel>
+                                                    <Rectangle Height="3" Width="{Binding ProgressX}" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                                               Margin="-8,0,0,-4" Fill="{StaticResource AccentBrush}"/>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- "Nu"-lijn over de rijen heen -->
+            <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True" IsHitTestVisible="False">
+                <Canvas RenderTransform="{StaticResource GridShift}">
+                    <Rectangle Canvas.Left="{Binding NowX}" Width="2" Height="4000" Fill="{StaticResource AccentBrush}" Opacity="0.85"/>
+                    <Border Canvas.Left="{Binding NowX}" Canvas.Top="3" Margin="-4,0,0,0" Background="{StaticResource AccentBrush}" CornerRadius="5" Padding="7,2">
+                        <TextBlock Text="{Binding NowText}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                    </Border>
+                </Canvas>
+            </Border>
+
+            <ScrollBar x:Name="HScroll" Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Scroll="HScroll_Scroll" SmallChange="150"/>
+
+            <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource DimText}" TextAlignment="Center" VerticalAlignment="Top" Margin="0,30"
+                       Text="Geen zenders gevonden." Visibility="{Binding HasNoChannels, Converter={StaticResource BoolToVis}}"/>
+
+            <!-- Details van het gekozen programma -->
+            <Border Grid.Row="4" Grid.ColumnSpan="2" Background="{StaticResource PanelBrush}" CornerRadius="10" Padding="16,12" Margin="0,10,0,0"
+                    Visibility="{Binding HasSelected, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <ContentControl DockPanel.Dock="Right" Content="{Binding Selected}" ContentTemplate="{StaticResource ProgrammeActions}" Margin="16,0,0,0"/>
+                    <StackPanel>
+                        <TextBlock Text="{Binding Selected.Title}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding SelectedTitle}" Style="{StaticResource DimText}" Margin="0,2,0,4"/>
+                        <TextBlock Text="{Binding Selected.Description}" Style="{StaticResource DimText}" FontSize="12" MaxHeight="52" TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Zoekresultaten -->
+        <Grid Grid.Row="2" Visibility="{Binding ShowHits, Converter={StaticResource BoolToVis}}">
+            <ListBox ItemsSource="{Binding Hits}" HorizontalContentAlignment="Stretch" ItemContainerStyle="{StaticResource PlainRow}"
+                     Background="Transparent" BorderThickness="0" VirtualizingPanel.IsVirtualizing="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="14,10" Margin="0,0,0,6">
+                            <DockPanel>
+                                <ContentControl DockPanel.Dock="Right" Content="{Binding Row}" ContentTemplate="{StaticResource ProgrammeActions}" Margin="12,0,0,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Row.Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Style="{StaticResource DimText}" FontSize="12">
+                                        <Run Text="{Binding ChannelName, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding WhenText, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Row.Description}" Style="{StaticResource DimText}" FontSize="12" MaxHeight="34" TextWrapping="Wrap"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock Style="{StaticResource DimText}" TextAlignment="Center" VerticalAlignment="Top" Margin="0,30"
+                       Text="Geen programma's gevonden." Visibility="{Binding HasNoHits, Converter={StaticResource BoolToVis}}"/>
+        </Grid>
+
+        <!-- Mijn herinneringen -->
+        <Grid Grid.Row="2" Visibility="{Binding ShowReminderList, Converter={StaticResource BoolToVis}}">
+            <ListBox ItemsSource="{Binding ReminderRows}" HorizontalContentAlignment="Stretch" ItemContainerStyle="{StaticResource PlainRow}"
+                     Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="14,10" Margin="0,0,0,6">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Verwijderen" Padding="12,4" FontSize="12" Command="{Binding RemoveCommand}"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Style="{StaticResource DimText}" FontSize="12">
+                                        <Run Text="{Binding ChannelName, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding TimeText, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock Style="{StaticResource DimText}" TextAlignment="Center" VerticalAlignment="Top" Margin="0,30" TextWrapping="Wrap" TextTrimming="None"
+                       Text="Je hebt nog geen herinneringen. Kies in het rooster een programma dat nog moet beginnen en klik op Herinner mij."
+                       Visibility="{Binding HasNoReminders, Converter={StaticResource BoolToVis}}"/>
+        </Grid>
+    </Grid>
+</UserControl>

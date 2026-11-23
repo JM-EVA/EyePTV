@@ -1,0 +1,86 @@
+name: iOS
+
+# Bouwt EyePTV.Mobile (iPhone) in de cloud en levert een IPA op die je zelf opnieuw ondertekent met AltStore of Sideloadly.
+# Versies (samen uitgezocht, zie CLAUDE.md): .NET 8 SDK (band 8.0.1xx), iOS-workload 18.0.x = Xcode 16.0 (iOS 18.0 SDK),
+# LibVLCSharp(.MAUI) 3.9.4 (laatste met net8.0-ios), macOS 15 runner.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+env:
+  DOTNET_NOLOGO: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  XCODE_VERSION: "16.0"
+
+jobs:
+  tests:
+    name: Engine-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Tests draaien (eigen testrunner)
+        run: dotnet run --project tests/IptvPlayer.Tests -c Release
+
+  ipa:
+    name: IPA bouwen
+    needs: tests
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET 8 installeren (band 8.0.1xx: daar hoort iOS-workload 18.0 bij)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.1xx"
+
+      - name: Xcode ${{ env.XCODE_VERSION }} kiezen
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+          xcodebuild -version
+
+      - name: MAUI-workload voor iOS installeren
+        run: |
+          dotnet --version
+          dotnet workload install maui-ios
+          dotnet workload list
+
+      - name: IPA bouwen (niet ondertekend: AltStore/Sideloadly doen dat zelf)
+        run: |
+          mkdir -p artifacts
+          dotnet build src/EyePTV.Mobile/EyePTV.Mobile.csproj \
+            -f net8.0-ios -c Release \
+            -p:RuntimeIdentifier=ios-arm64 \
+            -p:EnableCodeSigning=false \
+            -p:CodesignRequireProvisioningProfile=false \
+            -p:BuildIpa=false \
+            -bl:artifacts/build.binlog 2>&1 | tee artifacts/build.log
+
+      - name: App inpakken als IPA
+        run: |
+          APP=$(find src/EyePTV.Mobile/bin -type d -name '*.app' | head -n 1)
+          echo "App: $APP"
+          test -n "$APP"
+          rm -rf ipa && mkdir -p ipa/Payload
+          cp -R "$APP" ipa/Payload/
+          (cd ipa && zip -qry ../EyePTV.ipa Payload)
+          ls -lh EyePTV.ipa
+
+      - name: IPA uploaden
+        uses: actions/upload-artifact@v4
+        with:
+          name: EyePTV-ios-ipa
+          path: EyePTV.ipa
+          if-no-files-found: error
+
+      - name: Bouwlog uploaden (ook bij een mislukte bouw)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EyePTV-ios-buildlog
+          path: artifacts/
+          if-no-files-found: ignore

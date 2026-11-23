@@ -1,0 +1,33 @@
+<Window x:Class="IptvPlayer.Desktop.ExitDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{StaticResource AppWindow}"
+        Title="EyePTV afsluiten?" Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13"
+        Background="{StaticResource PanelBrush}" Foreground="{StaticResource TextBrush}"
+        Icon="Assets/app.ico">
+
+    <Grid Margin="26,24,26,22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <Ellipse DockPanel.Dock="Left" Width="14" Height="14" Fill="#E5534B" Margin="0,2,12,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Er zijn nog opnames" FontSize="18" FontWeight="SemiBold"/>
+        </DockPanel>
+
+        <TextBlock Grid.Row="1" x:Name="MessageText" TextWrapping="Wrap" Foreground="{StaticResource DimBrush}" LineHeight="20" Margin="0,0,0,22"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="QuitButton" Content="Afsluiten" Padding="18,9" Margin="0,0,10,0" Click="Quit_Click"
+                    ToolTip="De app afsluiten: lopende opnames stoppen en geplande opnames worden niet uitgevoerd"/>
+            <Button x:Name="MinimizeButton" Content="Minimaliseren" Style="{StaticResource AccentButton}" Padding="18,9" Margin="0,0,10,0"
+                    IsDefault="True" Click="Minimize_Click" ToolTip="Het venster minimaliseren; het opnemen gaat gewoon door"/>
+            <Button x:Name="StayButton" Content="Annuleren" Padding="18,9" IsCancel="True" Click="Stay_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

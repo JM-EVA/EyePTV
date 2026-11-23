@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vlc="clr-namespace:LibVLCSharp.MAUI;assembly=LibVLCSharp.MAUI"
+             x:Class="EyePTV.Mobile.MainPage"
+             BackgroundColor="{StaticResource Bg}">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- ============ Mijn lijst: zenders, films en series ============ -->
+        <Grid x:Name="LibraryLayer" Grid.Row="0" RowDefinitions="Auto,*">
+            <VerticalStackLayout Grid.Row="0" Padding="12,8,12,4" Spacing="8">
+                <Entry Placeholder="Zoeken" Text="{Binding SearchText}" ClearButtonVisibility="WhileEditing"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <Picker Title="Groep" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}"/>
+                    <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <CheckBox IsChecked="{Binding FavoritesOnly}"/>
+                        <Label Text="Favorieten" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Grid>
+            </VerticalStackLayout>
+
+            <Grid Grid.Row="1">
+                <Label Text="Je lijst is nog leeg. Voeg een bron toe bij Bronnen." Style="{StaticResource DimLabel}"
+                       IsVisible="{Binding IsEmpty}" HorizontalOptions="Center" VerticalOptions="Start" Margin="24,40,24,0"
+                       HorizontalTextAlignment="Center"/>
+                <Label Text="{Binding KindEmptyText}" Style="{StaticResource DimLabel}"
+                       IsVisible="{Binding HasNoKindItems}" HorizontalOptions="Center" VerticalOptions="Start" Margin="24,40,24,0"
+                       HorizontalTextAlignment="Center"/>
+                <Label Text="Niets gevonden." Style="{StaticResource DimLabel}"
+                       IsVisible="{Binding HasNoMatches}" HorizontalOptions="Center" VerticalOptions="Start" Margin="24,40,24,0"/>
+
+                <!-- Zenders: een lijst -->
+                <CollectionView x:Name="LiveList" ItemsSource="{Binding Rows}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="52,*,Auto" ColumnSpacing="10" Padding="12,6" HeightRequest="64">
+                                <Image Source="{Binding LogoUrl}" Aspect="AspectFit" WidthRequest="44" HeightRequest="44"/>
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                    <Label Text="{Binding Name}" FontSize="16" LineBreakMode="TailTruncation"/>
+                                    <Label Text="{Binding NowTitle}" Style="{StaticResource DimLabel}" LineBreakMode="TailTruncation"/>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Text="☆" FontSize="28" TextColor="{StaticResource Dim}"
+                                       VerticalOptions="Center" Padding="10">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsFavorite}" Value="True">
+                                            <Setter Property="Text" Value="★"/>
+                                            <Setter Property="TextColor" Value="{StaticResource Accent}"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnFavoriteTapped"/>
+                                    </Label.GestureRecognizers>
+                                </Label>
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding PlayCommand}"/>
+                                </Grid.GestureRecognizers>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Films en series: een posterraster -->
+                <CollectionView x:Name="PosterList" ItemsSource="{Binding Rows}" SelectionMode="None" IsVisible="False" Margin="6,0">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" Span="3"/>
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="4" Padding="6,6,6,10">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource Surface}" HeightRequest="170"
+                                        StrokeShape="RoundRectangle 10">
+                                    <Grid>
+                                        <Label Text="{Binding KindLabel}" Style="{StaticResource DimLabel}"
+                                               HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        <Image Source="{Binding LogoUrl}" Aspect="AspectFill"/>
+                                        <Label Text="☆" FontSize="26" TextColor="White" HorizontalOptions="End" VerticalOptions="Start" Padding="10,4">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsFavorite}" Value="True">
+                                                    <Setter Property="Text" Value="★"/>
+                                                    <Setter Property="TextColor" Value="{StaticResource Accent}"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnFavoriteTapped"/>
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </Grid>
+                                </Border>
+                                <Label Grid.Row="1" Text="{Binding Name}" FontSize="13" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding PlayCommand}"/>
+                                </Grid.GestureRecognizers>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Seizoenen en afleveringen van een geopende serie -->
+                <Grid IsVisible="{Binding IsSeriesOpen}" BackgroundColor="{StaticResource Bg}" RowDefinitions="Auto,Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Padding="12" ColumnSpacing="12">
+                        <Button Text="‹ Terug" Command="{Binding CloseSeriesCommand}"/>
+                        <Label Grid.Column="1" Text="{Binding SeriesTitle}" FontSize="20" FontAttributes="Bold"
+                               VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+                    </Grid>
+                    <VerticalStackLayout Grid.Row="1" Padding="12,0,12,6" Spacing="6">
+                        <Picker Title="Seizoen" ItemsSource="{Binding Seasons}" ItemDisplayBinding="{Binding Title}"
+                                SelectedItem="{Binding SelectedSeason}"/>
+                        <ActivityIndicator IsRunning="{Binding IsLoadingSeries}" IsVisible="{Binding IsLoadingSeries}" Color="{StaticResource Accent}"/>
+                        <Label Text="{Binding SeriesError}" IsVisible="{Binding HasSeriesError}" TextColor="{StaticResource Accent}"/>
+                    </VerticalStackLayout>
+                    <CollectionView Grid.Row="2" ItemsSource="{Binding Episodes}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto" Padding="14,10" MinimumHeightRequest="56">
+                                    <VerticalStackLayout VerticalOptions="Center">
+                                        <Label Text="{Binding Title}" FontSize="16" LineBreakMode="TailTruncation"/>
+                                        <Label Text="{Binding ResumeText}" Style="{StaticResource DimLabel}"/>
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding DurationText}" Style="{StaticResource DimLabel}" VerticalOptions="Center"/>
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding PlayCommand}"/>
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- ============ Bronnen ============ -->
+        <ScrollView x:Name="SourcesLayer" Grid.Row="0" IsVisible="False" BackgroundColor="{StaticResource Bg}">
+            <VerticalStackLayout Padding="16" Spacing="14">
+                <Label Text="Bronnen" FontSize="26" FontAttributes="Bold"/>
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}" Spacing="10">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Border BackgroundColor="{StaticResource Surface}" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="14">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold"/>
+                                    <Label Text="{Binding Description}" Style="{StaticResource DimLabel}"/>
+                                    <Label Text="{Binding InfoText}" Style="{StaticResource DimLabel}"/>
+                                    <Label Text="{Binding Status}" Style="{StaticResource DimLabel}"/>
+                                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Accent}"/>
+                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" Margin="0,6,0,0">
+                                        <Button Text="{Binding PrimaryActionText}" Style="{StaticResource PrimaryButton}" FontSize="13" Padding="4,0"
+                                                Clicked="OnSourcePrimary"/>
+                                        <Button Grid.Column="1" Text="Bijwerken" FontSize="13" Padding="4,0" Clicked="OnSourceSync"/>
+                                        <Button Grid.Column="2" Text="Verwijderen" FontSize="13" Padding="4,0" Clicked="OnSourceRemove"/>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <Label Text="Bron toevoegen" FontSize="20" FontAttributes="Bold" Margin="0,10,0,0"/>
+                <HorizontalStackLayout Spacing="16">
+                    <RadioButton Content="M3U-link" GroupName="soort" IsChecked="{Binding IsM3u}"/>
+                    <RadioButton Content="Xtream Codes" GroupName="soort" IsChecked="{Binding IsXtream}"/>
+                </HorizontalStackLayout>
+                <Entry Placeholder="Naam (niet verplicht)" Text="{Binding NewName}"/>
+                <Entry Placeholder="M3U-link" Keyboard="Url" Text="{Binding NewM3uUrl}" IsVisible="{Binding IsM3u}"/>
+                <VerticalStackLayout Spacing="14" IsVisible="{Binding IsXtream}">
+                    <Entry Placeholder="Server (bijvoorbeeld http://server:8080)" Keyboard="Url" Text="{Binding NewServer}"/>
+                    <Entry Placeholder="Gebruikersnaam" Keyboard="Url" Text="{Binding NewUser}"/>
+                    <Entry Placeholder="Wachtwoord" IsPassword="True" Text="{Binding NewPassword}"/>
+                </VerticalStackLayout>
+                <Button Text="Toevoegen" Style="{StaticResource PrimaryButton}" Command="{Binding AddSourceCommand}"/>
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Accent}"/>
+                <Label Text="{Binding StatusText}" Style="{StaticResource DimLabel}"/>
+                <Button Text="Alle bronnen bijwerken" Command="{Binding SyncAllCommand}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ============ Keuzescherm: wat komt in mijn lijst ============ -->
+        <Grid x:Name="SelectionLayer" Grid.Row="0" IsVisible="False" BackgroundColor="{StaticResource Bg}" RowDefinitions="Auto,*,Auto">
+            <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
+                <Label Text="{Binding Title}" FontSize="20" FontAttributes="Bold"/>
+                <Label Text="{Binding Subtitle}" Style="{StaticResource DimLabel}"/>
+                <Picker Title="Soort" ItemsSource="{Binding KindTabs}" ItemDisplayBinding="{Binding Label}"
+                        SelectedItem="{Binding SelectedKindTab}" IsVisible="{Binding HasKindTabs}"/>
+                <Picker Title="Groep" ItemsSource="{Binding Groups}" ItemDisplayBinding="{Binding Label}" SelectedItem="{Binding SelectedGroup}"/>
+                <Entry Placeholder="Zoeken" Text="{Binding SearchText}" ClearButtonVisibility="WhileEditing"/>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Text="Alles hieronder aan" Command="{Binding SelectVisibleCommand}" FontSize="13"/>
+                    <Button Grid.Column="1" Text="Alles hieronder uit" Command="{Binding DeselectVisibleCommand}" FontSize="13"/>
+                </Grid>
+            </VerticalStackLayout>
+            <CollectionView Grid.Row="1" ItemsSource="{Binding VisibleChannels}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,*" Padding="12,2" MinimumHeightRequest="48">
+                            <CheckBox IsChecked="{Binding IsSelected}" VerticalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" LineBreakMode="TailTruncation"/>
+                                <Label Text="{Binding Group}" Style="{StaticResource DimLabel}" LineBreakMode="TailTruncation"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <VerticalStackLayout Grid.Row="2" Padding="12,8" Spacing="8">
+                <Label Text="{Binding SummaryText}" Style="{StaticResource DimLabel}"/>
+                <Grid ColumnDefinitions="*,2*" ColumnSpacing="8">
+                    <Button Text="Annuleren" Command="{Binding CancelCommand}"/>
+                    <Button Grid.Column="1" Text="{Binding ConfirmText}" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmCommand}"/>
+                </Grid>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- ============ Onderste menu ============ -->
+        <Grid x:Name="NavBar" Grid.Row="1" ColumnDefinitions="*,*,*,*" BackgroundColor="{StaticResource Surface}" Padding="0,2">
+            <Button x:Name="NavLive" Text="Zenders" Clicked="OnNavLive" BackgroundColor="Transparent" FontSize="14"/>
+            <Button x:Name="NavMovies" Grid.Column="1" Text="Films" Clicked="OnNavMovies" BackgroundColor="Transparent" FontSize="14"/>
+            <Button x:Name="NavSeries" Grid.Column="2" Text="Series" Clicked="OnNavSeries" BackgroundColor="Transparent" FontSize="14"/>
+            <Button x:Name="NavSources" Grid.Column="3" Text="Bronnen" Clicked="OnNavSources" BackgroundColor="Transparent" FontSize="14"/>
+        </Grid>
+
+        <!-- ============ Speler (schermvullend, over alles heen) ============ -->
+        <Grid x:Name="PlayerLayer" Grid.Row="0" Grid.RowSpan="2" IsVisible="False" BackgroundColor="Black">
+            <vlc:VideoView x:Name="Video"/>
+            <ActivityIndicator IsRunning="{Binding ShowLoading}" IsVisible="{Binding ShowLoading}" Color="White"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnPlayerTapped"/>
+            </Grid.GestureRecognizers>
+
+            <Grid x:Name="PlayerControls" RowDefinitions="Auto,*,Auto" Padding="16" BackgroundColor="#80000000">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Button Text="‹ Stop" Command="{Binding StopCommand}" BackgroundColor="#40FFFFFF"/>
+                    <Label Grid.Column="1" Text="{Binding Current.Name}" FontSize="17" FontAttributes="Bold"
+                           VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+                </Grid>
+
+                <HorizontalStackLayout Grid.Row="1" Spacing="22" HorizontalOptions="Center" VerticalOptions="Center"
+                                       IsVisible="{Binding ShowTransport}">
+                    <Button Text="−10 s" Clicked="OnSeekBack" WidthRequest="84" HeightRequest="60" BackgroundColor="#40FFFFFF"/>
+                    <Button Text="⏸" Command="{Binding TogglePauseCommand}" WidthRequest="84" HeightRequest="60" FontSize="26"
+                            BackgroundColor="{StaticResource Accent}">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsPaused}" Value="True">
+                                <Setter Property="Text" Value="▶"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                    <Button Text="+30 s" Clicked="OnSeekForward" WidthRequest="84" HeightRequest="60" BackgroundColor="#40FFFFFF"/>
+                </HorizontalStackLayout>
+
+                <VerticalStackLayout Grid.Row="2" Spacing="4">
+                    <Label Text="{Binding StatusText}" Style="{StaticResource DimLabel}" HorizontalOptions="Center"/>
+                    <VerticalStackLayout IsVisible="{Binding ShowTransport}">
+                        <Slider x:Name="SeekBar" Minimum="0" Maximum="1" Value="{Binding PositionFraction, Mode=OneWay}"
+                                MinimumTrackColor="{StaticResource Accent}" ThumbColor="White"
+                                DragStarted="OnSeekStarted" DragCompleted="OnSeekCompleted"/>
+                        <Label Text="{Binding PositionText}" Style="{StaticResource DimLabel}" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>

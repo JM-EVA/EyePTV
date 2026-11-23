@@ -1,0 +1,239 @@
+<Window x:Class="IptvPlayer.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:IptvPlayer.Engine.ViewModels;assembly=IptvPlayer.Engine"
+        xmlns:views="clr-namespace:IptvPlayer.Desktop.Views"
+        xmlns:svc="clr-namespace:IptvPlayer.Desktop.Services"
+        Style="{StaticResource AppWindow}"
+        Title="EyePTV" WindowState="Maximized" Width="1280" Height="800" MinWidth="900" MinHeight="560"
+        Icon="Assets/app.ico"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13"
+        Background="{StaticResource AmbientBrush}"
+        Foreground="{StaticResource TextBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <!-- Welke weergave hoort bij welke pagina? -->
+        <DataTemplate DataType="{x:Type vm:SelectionViewModel}">
+            <views:SelectionView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:BeheerViewModel}">
+            <views:BeheerView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+            <views:HomeView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:GuideViewModel}">
+            <views:GuideView/>
+        </DataTemplate>
+
+        <!-- Kleine grijze toelichting onder een menu-item dat (nog) leeg is -->
+        <Style x:Key="NavHint" TargetType="TextBlock" BasedOn="{StaticResource DimText}">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="22,-2,12,6"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Menu links -->
+        <Border Grid.Column="0" Width="248" Margin="10,6,2,10" CornerRadius="18" Background="{StaticResource GlassBrush}"
+                BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1"
+                Visibility="{Binding ShowNav, Converter={StaticResource BoolToVis}}">
+            <Grid Margin="0,18,0,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <StackPanel Orientation="Horizontal" Margin="20,0,12,16">
+                        <Image Source="{StaticResource LogoImage}" Width="28" Height="28"/>
+                        <TextBlock Text="EyePTV" FontFamily="Bahnschrift SemiCondensed, Segoe UI" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Zoeken in je lijst: typen filtert, Enter opent de lijst -->
+                    <Grid Margin="14,0,14,0">
+                        <TextBox x:Name="NavSearch" Padding="32,8,10,8" Background="#14FFFFFF" BorderBrush="#1FFFFFFF"
+                                 Text="{Binding Channels.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Zoek in je zenders, films en series (Enter toont de resultaten)" AutomationProperties.Name="Zoeken">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding ShowChannelsCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Path Data="{StaticResource IconSearch}" Stroke="{StaticResource DimBrush}" StrokeThickness="1.7" Width="15" Height="15" Stretch="Uniform"
+                              HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0" IsHitTestVisible="False"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <TextBlock Text="Zoeken…" Foreground="{StaticResource DimBrush}" VerticalAlignment="Center" Margin="34,0,0,0" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Channels.SearchText}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <TextBlock Text="Menu" Style="{StaticResource NavSection}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Home" Command="{Binding ShowHomeCommand}"
+                            svc:Nav.Icon="{StaticResource IconHouse}" svc:Nav.IsActive="{Binding IsHomeActive}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Kanalen" Command="{Binding ShowLiveCommand}"
+                            svc:Nav.Icon="{StaticResource IconLive}" svc:Nav.IsActive="{Binding IsLiveActive}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Films" Command="{Binding ShowMoviesCommand}"
+                            svc:Nav.Icon="{StaticResource IconMovies}" svc:Nav.IsActive="{Binding IsMoviesActive}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Series" Command="{Binding ShowSeriesCommand}"
+                            svc:Nav.Icon="{StaticResource IconSeries}" svc:Nav.IsActive="{Binding IsSeriesActive}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Gids" Command="{Binding ShowGuideCommand}"
+                            svc:Nav.Icon="{StaticResource IconGuide}" svc:Nav.IsActive="{Binding IsGuideActive}"/>
+
+                    <TextBlock Text="Bibliotheek" Style="{StaticResource NavSection}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Opnames" Command="{Binding ShowRecordingsCommand}"
+                            svc:Nav.Icon="{StaticResource IconRecord}" svc:Nav.IsActive="{Binding IsRecordingsActive}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Downloads" Command="{Binding ShowDownloadsCommand}"
+                            svc:Nav.Icon="{StaticResource IconDownload}" svc:Nav.IsActive="{Binding IsDownloadsActive}"/>
+                    <Button Style="{StaticResource NavItem}" Content="Beheer" Command="{Binding ShowBeheerCommand}"
+                            svc:Nav.Icon="{StaticResource IconManage}" svc:Nav.IsActive="{Binding IsSettingsActive}"/>
+                </StackPanel>
+
+                <!-- Groepen van "Mijn zenders": direct onder het menu, zodat de lijst rechts de ruimte krijgt voor de namen -->
+                <Grid Grid.Row="1" Margin="8,18,8,0">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsChannelsActive}" Value="True"/>
+                                        <Condition Binding="{Binding Channels.ShowList}" Value="True"/>
+                                        <Condition Binding="{Binding Channels.ShowBrowse}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Style="{StaticResource NavSection}" Text="Groepen" Margin="14,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Channels.Groups}"
+                             SelectedItem="{Binding Channels.SelectedGroup, Mode=TwoWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip="{Binding}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <StackPanel Grid.Row="2">
+                    <Border Background="#33C0392B" CornerRadius="8" Margin="14,0,14,10" Padding="10,6"
+                            Visibility="{Binding HasActiveRecordings, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding RecordingBadge}" Foreground="#FF6B64" FontSize="12" FontWeight="SemiBold"/>
+                    </Border>
+                    <TextBlock Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="22,0,16,0" FontSize="12"
+                               Text="F11: volledig scherm&#10;Esc: volledig scherm sluiten"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Melding: er zijn nieuwe zenders om over te beslissen -->
+            <Border Grid.Row="0" Background="{StaticResource SelectedBrush}" Padding="16,10"
+                    Visibility="{Binding ShowBanner, Converter={StaticResource BoolToVis}}">
+                <DockPanel LastChildFill="True">
+                    <Button DockPanel.Dock="Right" Content="Bekijken" Style="{StaticResource AccentButton}"
+                            Padding="14,5" Command="{Binding ReviewBannerCommand}"/>
+                    <TextBlock Text="{Binding BannerText}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Herinnering: een programma begint zo -->
+            <Border Grid.Row="0" Background="{StaticResource AccentBrush}" Padding="16,10" Panel.ZIndex="5"
+                    Visibility="{Binding HasReminder, Converter={StaticResource BoolToVis}}">
+                <DockPanel LastChildFill="True">
+                    <Button DockPanel.Dock="Right" Content="Sluiten" Padding="14,5" Margin="8,0,0,0" Command="{Binding DismissReminderCommand}"/>
+                    <Button DockPanel.Dock="Right" Content="Nu kijken" Padding="14,5" Command="{Binding WatchReminderCommand}"/>
+                    <TextBlock VerticalAlignment="Center" Margin="0,0,12,0" Foreground="White" TextTrimming="CharacterEllipsis">
+                        <Run Text="Herinnering: "/><Run Text="{Binding ReminderText, Mode=OneWay}" FontWeight="SemiBold"/>
+                    </TextBlock>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <!-- "Mijn zenders" blijft altijd bestaan (alleen verborgen) zodat de videospeler niet steeds opnieuw wordt aangemaakt. -->
+                <views:ChannelsView DataContext="{Binding Channels}"
+                                    Visibility="{Binding DataContext.IsChannelsActive, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+
+                <ContentControl Content="{Binding OtherPage}"
+                                Visibility="{Binding IsOtherPageActive, Converter={StaticResource BoolToVis}}"/>
+            </Grid>
+        </Grid>
+
+        <!-- Inlaadscherm bij het openen: even de ruimte om het beginscherm (en de beelden van de kanalen) klaar te zetten -->
+        <Grid Grid.ColumnSpan="2" Panel.ZIndex="100" Background="{StaticResource AmbientBrush}" Visibility="{Binding IsStarting, Converter={StaticResource BoolToVis}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- Het logo ademt en er draait een lichtboog omheen -->
+                <Grid Width="160" Height="160" HorizontalAlignment="Center">
+                    <Grid.Triggers>
+                        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                            <BeginStoryboard>
+                                <!-- Alle animaties duren samen precies 1,8 s, anders staat de boog elke ronde even stil -->
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetName="SplashSpin" Storyboard.TargetProperty="Angle"
+                                                     From="0" To="360" Duration="0:0:1.8"/>
+                                    <DoubleAnimation Storyboard.TargetName="SplashBreathX" Storyboard.TargetProperty="ScaleX"
+                                                     From="1" To="1.09" Duration="0:0:0.9" AutoReverse="True">
+                                        <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="SplashBreathX" Storyboard.TargetProperty="ScaleY"
+                                                     From="1" To="1.09" Duration="0:0:0.9" AutoReverse="True">
+                                        <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="SplashGlow" Storyboard.TargetProperty="Opacity"
+                                                     From="0.15" To="0.55" Duration="0:0:0.9" AutoReverse="True"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Grid.Triggers>
+
+                    <Ellipse x:Name="SplashGlow" Width="124" Height="124" Opacity="0.15">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Color="#66E5132D" Offset="0.55"/>
+                                <GradientStop Color="#00E5132D" Offset="1"/>
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <Path Data="M80,6 A74,74 0 0 1 154,80" Stroke="{StaticResource AccentBrush}" StrokeThickness="3"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5">
+                        <Path.RenderTransform><RotateTransform x:Name="SplashSpin"/></Path.RenderTransform>
+                    </Path>
+                    <Image Source="{StaticResource LogoImage}" Width="96" Height="96" RenderTransformOrigin="0.5,0.5">
+                        <Image.RenderTransform><ScaleTransform x:Name="SplashBreathX"/></Image.RenderTransform>
+                    </Image>
+                </Grid>
+                <TextBlock Text="EyePTV" FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,18,0,14"/>
+                <ProgressBar IsIndeterminate="True" Width="180" Height="3"/>
+                <TextBlock Text="Je kanalen worden klaargezet…" Style="{StaticResource DimText}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

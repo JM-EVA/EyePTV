@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>IptvPlayer.Desktop</RootNamespace>
+    <AssemblyName>EyePTV</AssemblyName>
+    <Product>EyePTV</Product>
+    <!-- LibVLC levert 64-bit native bibliotheken mee; Windows 11 draait 64-bit. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WPF zet BinaryFormatter standaard aan; de app gebruikt het niet, dus uit (geen deserialisatie-aanvallen). -->
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+    <!-- Exacte pakketversies vastleggen (packages.lock.json) en bekende kwetsbaarheden melden bij het herstellen. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <!--
+    De LibVLC uit het pakket heeft geen bruikbare H.264-encoder (alleen een 10-bit x264). Zonder encoder kan niets worden
+    omgezet naar H.264: geen 4K/HEVC-zenders op een gewone Chromecast.
+    Is VLC op deze pc geïnstalleerd (zelfde versie), dan nemen we daar de normale x264-plug-in uit mee.
+  -->
+  <PropertyGroup>
+    <VlcX264Plugin>$(ProgramW6432)\VideoLAN\VLC\plugins\codec\libx264_plugin.dll</VlcX264Plugin>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(VlcX264Plugin)')">
+    <Content Include="$(VlcX264Plugin)" Link="libvlc\win-x64\plugins\codec\libx264_plugin.dll"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IptvPlayer.Engine\IptvPlayer.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Vaste versies (LibVLC 3.x is de stabiele lijn voor LibVLCSharp 3). Werk ze bewust bij en controleer dan op kwetsbaarheden. -->
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.10.2" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+    <!-- Microsoft-pakket voor DPAPI: beschermt de sleutel waarmee je wachtwoorden worden versleuteld. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>
