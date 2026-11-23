@@ -1,7 +1,7 @@
 name: iOS
 
 # Bouwt EyePTV.Mobile (iPhone) in de cloud en levert een IPA op die je zelf opnieuw ondertekent met AltStore of Sideloadly.
-# Versies (samen uitgezocht, zie CLAUDE.md): .NET 8.0.134 SDK (band 8.0.1xx, vast gezet: een nieuwere SDK weigert net8.0-ios), iOS-workload 18.0.x = Xcode 16.0 (iOS 18.0 SDK),
+# Versies (samen uitgezocht, zie CLAUDE.md): .NET 8.0.428 SDK (band 8.0.4xx, vast gezet: een nieuwere SDK weigert net8.0-ios), iOS-workload 18.0.x = Xcode 16.0 (iOS 18.0 SDK),
 # LibVLCSharp(.MAUI) 3.9.4 (laatste met net8.0-ios), macOS 15 runner.
 on:
   workflow_dispatch:
@@ -33,14 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: ".NET 8.0.134 installeren (band 8.0.1xx, daar hoort iOS-workload 18.0 bij)"
+      - name: ".NET 8.0.428 installeren (band 8.0.4xx, daar hoort iOS-workload 18.0 bij)"
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.134"
+          dotnet-version: "8.0.428"
 
-      - name: "SDK 8.0.1xx afdwingen (op de runner staan ook nieuwere SDK's, die net8.0-ios weigeren)"
+      - name: "SDK 8.0.428 afdwingen (op de runner staan ook nieuwere SDK's, die net8.0-ios weigeren)"
         run: |
-          echo '{ "sdk": { "version": "8.0.134", "rollForward": "latestPatch" } }' > global.json
+          echo '{ "sdk": { "version": "8.0.428", "rollForward": "latestPatch" } }' > global.json
           dotnet --list-sdks
           dotnet --version
 

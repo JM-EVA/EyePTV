@@ -3,7 +3,7 @@
   <!--
     EyePTV voor iPhone (.NET MAUI). Staat bewust NIET in IptvPlayer.sln: de Windows-bouw (desktop, tests, publish) blijft ongewijzigd.
     Bouwen kan alleen op een Mac (of op de GitHub macOS-runner, zie .github/workflows/ios.yml).
-    Gekozen combinatie: .NET 8 SDK (band 8.0.1xx) + iOS-workload 18.0.8319 (Xcode 16.0, iOS 18.0 SDK) + LibVLCSharp 3.9.4 (laatste met net8.0-ios18.0).
+    Gekozen combinatie: .NET 8.0.428 SDK (band 8.0.4xx) + iOS-workload 18.0.8319 (Xcode 16.0, iOS 18.0 SDK) + LibVLCSharp 3.9.4 (laatste met net8.0-ios18.0).
   -->
   <PropertyGroup>
     <TargetFrameworks>net8.0-ios18.0</TargetFrameworks>
