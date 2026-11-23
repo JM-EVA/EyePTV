@@ -518,9 +518,16 @@ public sealed class SourcesViewModel : ObservableObject
         return text;
     }
 
+    private static IEnumerable<Exception> Chain(Exception? ex)
+    {
+        for (; ex is not null; ex = ex.InnerException) yield return ex;
+    }
+
     private void ShowError(Exception ex)
     {
-        StatusText = ex.Message;
-        _dialogs.ShowError("Er ging iets mis", ex.Message);
+        // Bij netwerkfouten staat de echte oorzaak in de inner exceptions (anders zie je alleen "fout bij het versturen").
+        var text = string.Join(" → ", Chain(ex).Select(e => e.Message).Distinct());
+        StatusText = text;
+        _dialogs.ShowError("Er ging iets mis", text);
     }
 }
