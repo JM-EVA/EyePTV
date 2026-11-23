@@ -46,18 +46,12 @@ jobs:
 
       - name: Xcode ${{ env.XCODE_VERSION }} kiezen
         run: |
-          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+          # Xcode_16.0.app is een symlink naar Xcode_16.app; met het symlink-pad kan actool de macOS-SDK niet vinden.
+          XC=$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "/Applications/Xcode_${XCODE_VERSION}.app")
+          echo "Xcode-map: $XC"
+          sudo xcode-select -s "$XC"
           xcodebuild -version
           sudo xcodebuild -runFirstLaunch || true
-          ls -la "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" || true
-          xcodebuild -showsdks || true
-          echo "--- diagnose actool"
-          xcode-select -p
-          xcrun --find actool || true
-          xcrun --sdk macosx --find actool || true
-          xcodebuild -sdk "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" -find actool || true
-          xcodebuild -sdk macosx15.0 -find actool || true
-          ls "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer/usr/bin" | head -40 || true
 
       - name: MAUI-workload voor iOS installeren
         run: |
