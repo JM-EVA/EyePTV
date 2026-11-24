@@ -45,22 +45,30 @@ public sealed class PipWindow : Window
 
         Topmost = true;
         Width = 480;
-        Height = 300;
+        Height = 280;
         MinWidth = 240;
-        MinHeight = 160;
+        MinHeight = 150;
         Background = Brushes.Black;
-        ResizeMode = ResizeMode.CanResize;
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
+        // Geen titelbalk, wel een dunne rand om aan te trekken (het beeld zelf vangt de muis op, daarom de rand eromheen).
+        System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome
+        {
+            CaptionHeight = 0,
+            ResizeBorderThickness = new Thickness(6),
+            GlassFrameThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(0),
+            UseAeroCaptionButtons = false
+        });
         WindowStartupLocation = WindowStartupLocation.Manual;
         var area = SystemParameters.WorkArea;
         Left = area.Right - Width - 24;
         Top = area.Bottom - Height - 24;
         UpdateTitle();
 
-        // Het overlay-venster van LibVLCSharp vangt de muis op boven het beeld; daar zit de dubbelklik.
-        var hit = new Grid { Background = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)), ToolTip = "Dubbelklik: terug naar de app" };
-        hit.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 2) Close(); };
-        _video.Content = hit;
-        Content = _video;
+        // Het overlay-venster van LibVLCSharp vangt de muis op boven het beeld; daar zit de bediening.
+        _video.Content = BuildOverlay();
+        Content = new Border { Padding = new Thickness(6), Child = _video };
 
         // Pas als het venster en zijn beeldvlak bestaan, kan het beeld erheen.
         Loaded += (_, _) => Dispatcher.BeginInvoke(() => _player.MoveVideo(() =>
@@ -69,6 +77,43 @@ public sealed class PipWindow : Window
             _video.MediaPlayer = _player.MediaPlayer;
         }), DispatcherPriority.ContextIdle);
         vm.PropertyChanged += OnViewModelChanged;
+    }
+
+    /// <summary>Slepen met de muis, dubbelklik = terug naar de app; bij aanwijzen verschijnt de bediening (dempen, volume, terug).</summary>
+    private Grid BuildOverlay()
+    {
+        var root = new Grid { Background = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)), DataContext = _vm };
+        root.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ClickCount == 2) { Close(); return; }
+            try { DragMove(); } catch (InvalidOperationException) { }
+        };
+
+        var mute = new System.Windows.Controls.Primitives.ToggleButton { Content = "🔇", ToolTip = "Dempen", Width = 32, Height = 28, Margin = new Thickness(0, 0, 8, 0) };
+        mute.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new System.Windows.Data.Binding(nameof(ChannelsViewModel.IsMuted)));
+        var volume = new Slider { Minimum = 0, Maximum = 100, VerticalAlignment = VerticalAlignment.Center, ToolTip = "Volume" };
+        volume.SetBinding(System.Windows.Controls.Primitives.RangeBase.ValueProperty, new System.Windows.Data.Binding(nameof(ChannelsViewModel.Volume)));
+        var back = new Button { Content = "⤢", ToolTip = "Terug naar de app", Width = 32, Height = 28, Margin = new Thickness(8, 0, 0, 0) };
+        back.Click += (_, _) => Close();
+
+        var bar = new DockPanel { LastChildFill = true, Margin = new Thickness(8, 6, 8, 6) };
+        DockPanel.SetDock(mute, Dock.Left);
+        DockPanel.SetDock(back, Dock.Right);
+        bar.Children.Add(mute);
+        bar.Children.Add(back);
+        bar.Children.Add(volume);
+
+        var panel = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(0xB0, 0, 0, 0)),
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Visibility = Visibility.Collapsed,
+            Child = bar
+        };
+        root.Children.Add(panel);
+        root.MouseEnter += (_, _) => panel.Visibility = Visibility.Visible;
+        root.MouseLeave += (_, _) => panel.Visibility = Visibility.Collapsed;
+        return root;
     }
 
     private void UpdateTitle() => Title = _vm.Current?.Name ?? "EyePTV";
