@@ -38,6 +38,25 @@ public partial class ChannelsView : UserControl
         Dispatcher.InvokeAsync(() => ScheduleList.ScrollIntoView(target));
     }
 
+    // ---- Zwevend venster (beeld-in-beeld) ----
+
+    private PipWindow? _pip;
+
+    private void Pip_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pip is not null) { _pip.Close(); return; }
+        if (Vm is not { Current: not null } vm || Application.Current is not App { Player: { } player }) return;
+
+        VideoView.MediaPlayer = null; // eerst loslaten: het beeld kan maar in één venster tegelijk
+        _pip = new PipWindow(vm, player.MediaPlayer);
+        _pip.Closed += (_, _) =>
+        {
+            _pip = null;
+            VideoView.MediaPlayer = player.MediaPlayer;
+        };
+        _pip.Show();
+    }
+
     // ---- Opnemen ----
 
     private void RecordMenuButton_Click(object sender, RoutedEventArgs e)
