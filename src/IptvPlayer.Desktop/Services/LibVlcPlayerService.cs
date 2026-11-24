@@ -212,6 +212,21 @@ public sealed class LibVlcPlayerService : IPlayerService, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Verhuist het beeld naar een ander venster. LibVLC tekent een lopend beeld niet in een nieuw venster:
+    /// daarom stoppen, het venster wisselen en op dezelfde plek verder (zoals bij casten).
+    /// </summary>
+    public void MoveVideo(Action attach)
+    {
+        var url = _lastUrl;
+        var title = _lastTitle ?? "";
+        var resumeAt = MediaPlayer.IsSeekable ? Math.Max(0, MediaPlayer.Time) : 0;
+        var wasPlaying = url is not null && MediaPlayer.State is VLCState.Playing or VLCState.Buffering or VLCState.Paused or VLCState.Opening;
+        if (wasPlaying) MediaPlayer.Stop();
+        attach();
+        if (wasPlaying) Play(url!, title, resumeAt);
+    }
+
     public void TogglePause() => MediaPlayer.Pause(); // Pause() schakelt tussen pauze en verder
 
     public void SeekTo(long ms)

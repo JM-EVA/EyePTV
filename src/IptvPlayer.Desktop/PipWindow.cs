@@ -2,9 +2,10 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
+using IptvPlayer.Desktop.Services;
 using IptvPlayer.Engine.ViewModels;
 using LibVLCSharp.WPF;
-using VlcPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace IptvPlayer.Desktop;
 
@@ -15,14 +16,32 @@ namespace IptvPlayer.Desktop;
 /// </summary>
 public sealed class PipWindow : Window
 {
+    private static PipWindow? _open;
+
+    /// <summary>Het beeld in de app zelf (door <c>ChannelsView</c> gezet).</summary>
+    public static VideoView? MainVideo { get; set; }
+
+    public static bool IsOpen => _open is not null;
+
+    public static void Open(ChannelsViewModel vm, LibVlcPlayerService player)
+    {
+        if (_open is not null || MainVideo is null || vm.Current is null) return;
+        _open = new PipWindow(vm, player, MainVideo);
+        _open.Show();
+    }
+
+    public static void CloseCurrent() => _open?.Close();
+
     private readonly ChannelsViewModel _vm;
-    private readonly VlcPlayer _player;
+    private readonly LibVlcPlayerService _player;
+    private readonly VideoView _main;
     private readonly VideoView _video = new() { Background = Brushes.Black };
 
-    public PipWindow(ChannelsViewModel vm, VlcPlayer player)
+    private PipWindow(ChannelsViewModel vm, LibVlcPlayerService player, VideoView main)
     {
         _vm = vm;
         _player = player;
+        _main = main;
 
         Topmost = true;
         Width = 480;
@@ -43,7 +62,12 @@ public sealed class PipWindow : Window
         _video.Content = hit;
         Content = _video;
 
-        Loaded += (_, _) => _video.MediaPlayer = _player;
+        // Pas als het venster en zijn beeldvlak bestaan, kan het beeld erheen.
+        Loaded += (_, _) => Dispatcher.BeginInvoke(() => _player.MoveVideo(() =>
+        {
+            _main.MediaPlayer = null;
+            _video.MediaPlayer = _player.MediaPlayer;
+        }), DispatcherPriority.ContextIdle);
         vm.PropertyChanged += OnViewModelChanged;
     }
 
@@ -58,7 +82,16 @@ public sealed class PipWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _vm.PropertyChanged -= OnViewModelChanged;
-        _video.MediaPlayer = null; // laat het beeld los, zodat de app het weer kan overnemen
+        _open = null;
+        try
+        {
+            _player.MoveVideo(() =>
+            {
+                _video.MediaPlayer = null;
+                _main.MediaPlayer = _player.MediaPlayer;
+            });
+        }
+        catch (ObjectDisposedException) { } // de app sluit af
         base.OnClosed(e);
     }
 }

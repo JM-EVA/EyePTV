@@ -19,6 +19,7 @@ public partial class ChannelsView : UserControl
         // De speler leeft in de app zelf; hier koppelen we alleen het beeld eraan.
         if (Application.Current is App app && app.Player is not null)
             VideoView.MediaPlayer = app.Player.MediaPlayer;
+        PipWindow.MainVideo = VideoView;
 
         // Als de programmagids verandert, scrollen we naar het programma dat nu loopt.
         if (Vm is { } vm && !ReferenceEquals(vm, _subscribedTo))
@@ -40,21 +41,10 @@ public partial class ChannelsView : UserControl
 
     // ---- Zwevend venster (beeld-in-beeld) ----
 
-    private PipWindow? _pip;
-
     private void Pip_Click(object sender, RoutedEventArgs e)
     {
-        if (_pip is not null) { _pip.Close(); return; }
-        if (Vm is not { Current: not null } vm || Application.Current is not App { Player: { } player }) return;
-
-        VideoView.MediaPlayer = null; // eerst loslaten: het beeld kan maar in één venster tegelijk
-        _pip = new PipWindow(vm, player.MediaPlayer);
-        _pip.Closed += (_, _) =>
-        {
-            _pip = null;
-            VideoView.MediaPlayer = player.MediaPlayer;
-        };
-        _pip.Show();
+        if (PipWindow.IsOpen) { PipWindow.CloseCurrent(); return; }
+        if (Vm is { } vm && Application.Current is App { Player: { } player }) PipWindow.Open(vm, player);
     }
 
     // ---- Opnemen ----

@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _recordTimer;
     private readonly DispatcherTimer _connectionTimer;
     private WindowState _stateBeforeFullscreen = WindowState.Normal;
+    private bool _pipAuto;
 
     public MainWindow(MainViewModel vm)
     {
@@ -26,6 +27,24 @@ public partial class MainWindow : Window
 
         // Erotiek wordt weer verborgen zodra je het venster minimaliseert.
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) _vm.AdultLock.Lock(); };
+
+        // Minimaliseren terwijl er iets speelt: het beeld gaat in het zwevende venster door; terugkomen sluit het weer.
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                if (_vm.Channels is { Current: not null, IsCasting: false } && !PipWindow.IsOpen && Application.Current is App { Player: { } player })
+                {
+                    PipWindow.Open(_vm.Channels, player);
+                    _pipAuto = PipWindow.IsOpen;
+                }
+            }
+            else if (_pipAuto)
+            {
+                _pipAuto = false;
+                PipWindow.CloseCurrent();
+            }
+        };
 
         // Esc moet volledig scherm sluiten, ook als de toetsenbordfocus nergens in de WPF-controls zit
         // (na een klik op de knop, of op het videobeeld/overlay-venster van LibVLC). Daarom hier, op berichtniveau.
